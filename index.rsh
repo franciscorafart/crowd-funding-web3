@@ -6,13 +6,13 @@ const deadline = 50;
 export const main = Reach.App(() => {
   const A = Participant('Artist', {
     provideCatalog: Fun([], Array(Song, 10)), // TODO: figure out flexible array
-    getSoldSongs: Fun([Array(Bytes(64), 10)], Array(Bytes(64), 10)), // Gets list if ids, returns list of URLs
-    totalPrice: UInt,
+    getPickedSongs: Fun([Array(Bytes(64), 10)], Array(Bytes(64), 10)), // Gets list if ids, returns list of URLs
+    provideTotalPrice: Fun([Array(Bytes(64), 10)], UInt),
   });
 
   const F = API('Fan', {
     getCatalog: Fun([Array(Song, 10)], Null),
-    pickSongs: Fun([], Array(Bytes(64), 10)),
+    pickSongs: Fun([], Array(Bytes(64), 10)), // Or Pick rewards
     acceptPrice: Fun([UInt], Bool),
   });
   init();
@@ -37,11 +37,39 @@ export const main = Reach.App(() => {
   });
 
   // The second one to publish always attaches
-  F.publish(pickedSongs).timeout(RelativeTime(deadline), () => closeTo());
+  F.publish(pickedSongs).timeout(
+    RelativeTime(deadline), () => closeTo(A, informTimeout)
+  );
   commit();
 
-  A.pu
+  A.only(() => {
+    const totalPrice = declassify(interact.provideCatalog);
+  });
 
+  A.publish(totalPrice);
+  commit();
+
+  F.only(() => {
+    const priceAccepted = declassify(interact.acceptPrice);
+  });
+
+  if (!priceAccepted) {
+    closetTo(A);
+  }
+
+  F.pay(totalPrice);
+  commit();
+
+  // TODO: Check picked songs hasn't changed
+  A.only(() => {
+    const songUrls = declassify(interact.getPickedSongs(pickedSongs));
+  });
+
+  A.publish(songUrls).timeout(RelativeTime(deadline), () => closeTo(F, informTimeout));
+  
+  transfer(totalPrice, A);
+  commit();
+  
   // write your program here
   exit();
 });
