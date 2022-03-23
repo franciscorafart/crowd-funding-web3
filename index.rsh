@@ -5,15 +5,14 @@ const deadline = 50;
 
 export const main = Reach.App(() => {
   const A = Participant('Artist', {
-    provideCatalog: Fun([], Array(Song, 10)), // TODO: figure out flexible array
-    getPickedSongs: Fun([Array(Bytes(64), 10)], Array(Bytes(64), 10)), // Gets list if ids, returns list of URLs
-    provideTotalPrice: Fun([Array(Bytes(64), 10)], UInt),
+    perks: Array(Song, 4), // TODO: figure out flexible array
+    getPickedPerk: Fun([Bytes(64)], Bytes(64)), // Gets id, returns asset url
+    provideTotalPrice: Fun([Bytes(64)], UInt),
   });
 
   const F = API('Fan', {
-    getCatalog: Fun([Array(Song, 10)], Null),
-    pickSongs: Fun([], Array(Bytes(64), 10)), // Or Pick rewards
-    acceptPrice: Fun([UInt], Bool),
+    pickPerk: Fun([Array(Song, 4)], Bytes(64)), // Or Pick rewards
+    confirmPrice: Fun([UInt], Bool),
   });
   init();
 
@@ -24,7 +23,7 @@ export const main = Reach.App(() => {
   };
 
   A.only(() => {
-    const catalog = declassify(interact.provideCatalog);
+    const catalog = declassify(interact.perks);
   });
 
   // The first one to publish deploys the contract
@@ -32,29 +31,31 @@ export const main = Reach.App(() => {
   commit();
 
   F.only(() => {
-    interact.getCatalog(catalog);
-    const pickedSongs = declassify(intract.pickSongs);
+    const pickedPerk = intract.pickPerk(catalog);
   });
 
   // The second one to publish always attaches
-  F.publish(pickedSongs).timeout(
+  F.publish(pickedPerk).timeout(
     RelativeTime(deadline), () => closeTo(A, informTimeout)
   );
   commit();
 
   A.only(() => {
-    const totalPrice = declassify(interact.provideCatalog);
+    const totalPrice = interact.provideTotalPrice(pickedPerk);
   });
 
   A.publish(totalPrice);
   commit();
 
   F.only(() => {
-    const priceAccepted = declassify(interact.acceptPrice);
+    const priceAccepted = interact.confirmPrice(totalPrice);
   });
 
+  F.publish(priceAccepted).timeout(RelativeTime(deadline), () => informTimeout);
+  commit();
+  
   if (!priceAccepted) {
-    closetTo(A);
+    closetTo(A); // TODO: Add log function
   }
 
   F.pay(totalPrice);
@@ -62,14 +63,13 @@ export const main = Reach.App(() => {
 
   // TODO: Check picked songs hasn't changed
   A.only(() => {
-    const songUrls = declassify(interact.getPickedSongs(pickedSongs));
+    const perkUrl = declassify(interact.getPickedPerkl(pickedPerk));
   });
 
-  A.publish(songUrls).timeout(RelativeTime(deadline), () => closeTo(F, informTimeout));
+  A.publish(perkUrl).timeout(RelativeTime(deadline), () => closeTo(F, informTimeout));
   
   transfer(totalPrice, A);
   commit();
   
-  // write your program here
   exit();
 });
