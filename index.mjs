@@ -1,9 +1,8 @@
-import {loadStdlib} from '@reach-sh/stdlib';
+import { loadStdlib } from '@reach-sh/stdlib';
 import * as backend from './build/index.main.mjs';
-import  {ask, yesno, done } from '@reach-sh/stdlib/ask.mjs';
+import  { ask, yesno, done } from '@reach-sh/stdlib/ask.mjs';
 
 const stdlib = loadStdlib(process.env);
-// console.log('process', process)
 
 // TODO: This should be taken dynamically from the Artist participant
 const perksArtist = [
@@ -13,26 +12,24 @@ const perksArtist = [
   ['Digital download, CD, thank you note, and private performance', 'privateShow', 200],
 ];
 
-const urls = {
-  digitalDownload: 'https://crowdfunding.com/download-1',
-  downloadCd: 'https://crowdfunding.com/download-2',
-  cdThanks: 'https://crowdfunding.com/download-3',
-  privateShow: 'https://crowdfunding.com/download-1',
-}
-
-let perksFan;
+const urls = [
+  'https://crowdfunding.com/download-1',
+  'https://crowdfunding.com/download-2',
+  'https://crowdfunding.com/download-3',
+  'https://crowdfunding.com/download-1',
+];
 
 (async () => {
   console.log('Crowdfunding platform');
-  console.log('Launching...');
+  const fmt = x => stdlib.formatCurrency(x, 4);
 
   const isArtist = await ask('Are you using the app as an artist?', yesno);
-  const acc = stdlib.newTestAccount(stdlib.parseCurrency(isArtist? 10 : 100));
+  const acc = await stdlib.newTestAccount(stdlib.parseCurrency(isArtist? 10 : 100));
   let ctc = null;
 
   if (isArtist) {
     ctc = acc.contract(backend);
-    ctc.getInfo().then(info => {
+    ctc.getInfo().then((info) => {
       console.log(`The contract is at ${JSON.stringify(info)}`);
     })
   } else {
@@ -40,31 +37,26 @@ let perksFan;
     ctc = acc.contract(backend, info);
   }
 
-  const fmt = x => stdlib.formatCurrency(x, 4);
+
   // const getBalance = async () => fmt(await stdlib.balanceOf(acc));
 
-  const interact = { ...stdlib.hadRandom };
+  const interact = { ...stdlib.hasRandom };
 
   if (isArtist) {
     interact.perks = perksArtist;
+    interact.goal = await ask('How much is your goal?', stdlib.parseCurrency);
+  
+    interact.getUrls = async () => urls;
 
-    interact.getPickedPerk = async (perkId) => {
+    interact.getPickedPerk = async perkId => {
         const url = urls[perkId]
         if (url) {
           return url;
         }
         process.exit(1);
     }
-
-    interact.provideTotalPrice = async (perkId) => {
-      const perk = perksArtist.find(p => p[1] === perkId);
-      if (perk) {
-        return perk[2]; // Price
-      }
-      process.exit(1);
-    }
   } else {
-    interact.pickPerk = async (perksFan) => {
+    interact.pickPerk = async perksFan => {
       const pickedIdx = ask(`Pick your perks ${perksFan.map((p, idx) => `${idx + 1} - ${p[0]}, `)}`, x => {
         if(isNaN(Number(x))){
           throw Error(`${x} is not a number!`)
@@ -77,9 +69,9 @@ let perksFan;
     }
 
     interact.confirmPrice = async totalPrice => ask(`Do you accept to pay the total price of ${fmt(totalPrice)}`, yesno);
-
-    const part = isArtist ? ctc.p.Artist : ctc.apis.Fan;
-    part(interact);
-    done();
   } 
-});
+  
+  const part = isArtist ? ctc.p.Artist : ctc.apis.Fan;
+  await part(interact);
+  done();
+})();

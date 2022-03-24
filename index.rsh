@@ -1,75 +1,102 @@
 'reach 0.1';
 
 const Song = Tuple(Bytes(64), Bytes(64), UInt) // Title, id, Price
-const deadline = 50;
+
+const crowfundingDeadline = 10;
+const deadline = 5;
 
 export const main = Reach.App(() => {
   const A = Participant('Artist', {
+    ...hasRandom,
     perks: Array(Song, 4), // TODO: figure out flexible array
-    getPickedPerk: Fun([Bytes(64)], Bytes(64)), // Gets id, returns asset url
-    provideTotalPrice: Fun([Bytes(64)], UInt),
+    getUrls: Fun([], Array(Bytes(64), 4)),
+    goal: UInt,
+    // TODO: Figure out crowfundingDeadline from dates
   });
 
   const F = API('Fan', {
-    pickPerk: Fun([Array(Song, 4)], Bytes(64)), // Or Pick rewards
-    confirmPrice: Fun([UInt], Bool),
+    pickPerk: Fun([Bytes(64)], Array(Song, 4)),
+    confirmPrice: Fun([Bool], UInt),
   });
-  init();
 
+  init();
+  
   const informTimeout = () => {
     each([A, F], () => {
-        interact.informTimeout();
+      interact.informTimeout();
     });
   };
+  
+  A.publish();
+  commit();
 
   A.only(() => {
     const catalog = declassify(interact.perks);
+    const goal = declassify(interact.goal);
+    const _urls = interact.getUrls();
+
+    const [_urlsCommit, _urlsSalt] = makeCommitment(interact, _urls);
+    const urlsCommit = declassify(_urlsCommit);
+    // TODO: makeCommit for urls so that F can't see it
   });
 
   // The first one to publish deploys the contract
-  A.publish(catalog);
-  commit();
-
-  F.only(() => {
-    const pickedPerk = intract.pickPerk(catalog);
-  });
-
-  // The second one to publish always attaches
-  F.publish(pickedPerk).timeout(
-    RelativeTime(deadline), () => closeTo(A, informTimeout)
-  );
-  commit();
-
-  A.only(() => {
-    const totalPrice = interact.provideTotalPrice(pickedPerk);
-  });
-
-  A.publish(totalPrice);
-  commit();
-
-  F.only(() => {
-    const priceAccepted = interact.confirmPrice(totalPrice);
-  });
-
-  F.publish(priceAccepted).timeout(RelativeTime(deadline), () => informTimeout);
-  commit();
+  A.publish(catalog, goal, urlsCommit);
   
-  if (!priceAccepted) {
-    closetTo(A); // TODO: Add log function
+  // Original Participant based version
+  // F.only(() => {
+    //   const pickedPerk = intract.pickPerk(catalog);
+    // });
+    
+    // // The second one to publish always attaches
+    // F.publish(pickedPerk).timeout(
+      //   RelativeTime(crowfundingDeadline), () => closeTo(A, informTimeout)
+      // );
+      // commit();
+      
+      // // TODO: determine total price from pickedPerk
+      
+      // transfer(totalPrice, A);
+      // commit();
+      
+  // TODO: Parallel reduce??
+  const end = lastConsensusTime() + crowfundingDeadline;
+  
+  var totalPool = 0;
+  invariant(balance() == totalPool);
+  while (lastConsensusTime() < end) {
+    commit();
+    const [ pickedPerkId, setPerksParams ] = call(F.pickPerk).throwTimeout(
+      relativeTime(deadline), () => closeTo(A, informTimeout)
+    );
+    setPerksParams(catalog);
+    
+    const pickedPerk = catalog.find(perk => perk[1] === pickedPerkId);
+    if (isNone(pickedPerk)) {
+      continue;
+    }
+    const price = pickedPerk.Some(2);
+    const [ accepted, setPriceParams] = call(F.confirmPrice).throwTimeout(
+      relativeTime(deadline), () => closeTo(A, informTimeout)
+    );
+    setPriceParams(price);
+
+    if (!accepted) {
+      continue;
+    }
+
+    F.pay(price);
+    totalPool = totalPool + price;
+    // Listener.interact.hear(...pickedPerk);
+    continue;
   }
 
-  F.pay(totalPrice);
-  commit();
+  if (totalPool < goal) {
+    tranfer(F, price);
+  } else {
+    tranfer(A, totalPool);
+  }
 
-  // TODO: Check picked songs hasn't changed
-  A.only(() => {
-    const perkUrl = declassify(interact.getPickedPerkl(pickedPerk));
-  });
-
-  A.publish(perkUrl).timeout(RelativeTime(deadline), () => closeTo(F, informTimeout));
-  
-  transfer(totalPrice, A);
   commit();
-  
   exit();
 });
