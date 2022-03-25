@@ -6,10 +6,10 @@ const stdlib = loadStdlib(process.env);
 
 // TODO: This should be taken dynamically from the Artist participant
 const perksArtist = [
-  ['Digital download', 'digitalDownload', 10],
+  ['Digital download', 'download', 10],
   ['Digital download + CD', 'downloadCd', 20],
   ['Digital download, CD, and personal thank you note on CD', 'cdThanks', 50],
-  ['Digital download, CD, thank you note, and private performance', 'privateShow', 200],
+  ['Digital download, CD, thank you note, and private performance', 'show', 200],
 ];
 
 const urls = [
@@ -30,15 +30,12 @@ const urls = [
   if (isArtist) {
     ctc = acc.contract(backend);
     ctc.getInfo().then((info) => {
-      console.log(`The contract is at ${JSON.stringify(info)}`);
+      console.log(`The contract is at ${JSON.stringify(stdlib.bigNumberToNumber(info))}`);
     })
   } else {
     const info  = ask('Paste contract info', JSON.parse);
     ctc = acc.contract(backend, info);
   }
-
-
-  // const getBalance = async () => fmt(await stdlib.balanceOf(acc));
 
   const interact = { ...stdlib.hasRandom };
 
@@ -66,11 +63,6 @@ const urls = [
       });
 
       return perksFan[pickedIdx];
-    }
-
-    interact.confirmPrice = async totalPrice => {
-      const accepted =  ask(`Do you accept to pay the total price of ${fmt(totalPrice)}`, yesno);
-      return accepted ? totalPrice : totalPrice+1;
     }
   } 
   
