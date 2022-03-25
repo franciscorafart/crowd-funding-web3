@@ -16,7 +16,7 @@ export const main = Reach.App(() => {
 
   const F = API('Fan', {
     pickPerk: Fun([Bytes(64)], Array(Song, 4)),
-    confirmPrice: Fun([Bool], UInt),
+    confirmPrice: Fun([UInt], UInt),
   });
 
   init();
@@ -42,22 +42,6 @@ export const main = Reach.App(() => {
 
   // The first one to publish deploys the contract
   A.publish(catalog, goal, urlsCommit);
-  
-  // Original Participant based version
-  // F.only(() => {
-    //   const pickedPerk = intract.pickPerk(catalog);
-    // });
-    
-    // // The second one to publish always attaches
-    // F.publish(pickedPerk).timeout(
-      //   RelativeTime(crowfundingDeadline), () => closeTo(A, informTimeout)
-      // );
-      // commit();
-      
-      // // TODO: determine total price from pickedPerk
-      
-      // transfer(totalPrice, A);
-      // commit();
       
   // TODO: Parallel reduce??
   const end = lastConsensusTime() + crowfundingDeadline;
@@ -70,23 +54,34 @@ export const main = Reach.App(() => {
       relativeTime(deadline), () => closeTo(A, informTimeout)
     );
     setPerksParams(catalog);
+
+    // const getFromMaybe = (m) => fromMaybe(m, (() => Null), (x) => x);
     
+    // Is pickedPerkId an actual value? I think it's a Maybe
     const pickedPerk = catalog.find(perk => perk[1] === pickedPerkId);
     if (isNone(pickedPerk)) {
       continue;
     }
-    const price = pickedPerk.Some(2);
-    const [ accepted, setPriceParams] = call(F.confirmPrice).throwTimeout(
-      relativeTime(deadline), () => closeTo(A, informTimeout)
-    );
+
+    const getPriceMaybe = (m) => fromMaybe(m, (() => 0), ((x) => x[2]));
+    const price = getPriceMaybe(pickedPerk);
+    commit();
+    
+    const [p, setPriceParams] = call(F.confirmPrice)
+      .assume((x) => assume(x == price))
+      .pay((a) => a)
+      .throwTimeout(
+        relativeTime(deadline), 
+        () => closeTo(A, informTimeout)
+      );
     setPriceParams(price);
 
-    if (!accepted) {
-      continue;
-    }
+    // if (!(p[0] == price)) {
+    //   continue;
+    // }
 
-    F.pay(price);
-    totalPool = totalPool + price;
+    // F.pay(price);
+    totalPool = totalPool + p[0];
     // Listener.interact.hear(...pickedPerk);
     continue;
   }

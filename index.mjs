@@ -68,7 +68,10 @@ const urls = [
       return perksFan[pickedIdx];
     }
 
-    interact.confirmPrice = async totalPrice => ask(`Do you accept to pay the total price of ${fmt(totalPrice)}`, yesno);
+    interact.confirmPrice = async totalPrice => {
+      const accepted =  ask(`Do you accept to pay the total price of ${fmt(totalPrice)}`, yesno);
+      return accepted ? totalPrice : totalPrice+1;
+    }
   } 
   
   const part = isArtist ? ctc.p.Artist : ctc.apis.Fan;
