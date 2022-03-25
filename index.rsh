@@ -15,8 +15,8 @@ export const main = Reach.App(() => {
   });
 
   const F = API('Fan', {
-    pickPerk: Fun([Bytes(64)], Array(Song, 4)),
-    confirmPrice: Fun([UInt], UInt),
+    pickPerk: Fun([Song], Array(Song, 4)),
+    // confirmPrice: Fun([UInt], UInt),
   });
 
   init();
@@ -50,42 +50,18 @@ export const main = Reach.App(() => {
   invariant(balance() == totalPool);
   while (lastConsensusTime() < end) {
     commit();
-    const [ pickedPerkId, setPerksParams ] = call(F.pickPerk).throwTimeout(
+    const [ pickedPerk, setPerksParams ] = call(F.pickPerk).pay(
+      (picked) => picked[2]).throwTimeout(
       relativeTime(deadline), () => closeTo(A, informTimeout)
     );
     setPerksParams(catalog);
 
-    // const getFromMaybe = (m) => fromMaybe(m, (() => Null), (x) => x);
-    
-    // Is pickedPerkId an actual value? I think it's a Maybe
-    const pickedPerk = catalog.find(perk => perk[1] === pickedPerkId);
-    if (isNone(pickedPerk)) {
-      continue;
-    }
+    totalPool = totalPool + pickedPerk[0][2];
 
-    const getPriceMaybe = (m) => fromMaybe(m, (() => 0), ((x) => x[2]));
-    const price = getPriceMaybe(pickedPerk);
-    commit();
-    
-    const [p, setPriceParams] = call(F.confirmPrice)
-      .assume((x) => assume(x == price))
-      .pay((a) => a)
-      .throwTimeout(
-        relativeTime(deadline), 
-        () => closeTo(A, informTimeout)
-      );
-    setPriceParams(price);
-
-    // if (!(p[0] == price)) {
-    //   continue;
-    // }
-
-    // F.pay(price);
-    totalPool = totalPool + p[0];
-    // Listener.interact.hear(...pickedPerk);
     continue;
   }
 
+  // Not possible to send arbitrary transfers back to users, I have to implement harvest functionality.
   if (totalPool < goal) {
     tranfer(F, price);
   } else {
