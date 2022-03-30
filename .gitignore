@@ -1,3 +1,5 @@
+.reach
+.vscode
 build/
 node_modules/
 tls/
