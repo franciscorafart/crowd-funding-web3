@@ -41,7 +41,6 @@ const urls = [
   const interact = { ...stdlib.hasRandom };
 
   if (isArtist) {
-    interact.perks = perksArtist;
     interact.goal = await ask('How much is your goal?', stdlib.parseCurrency);
     interact.logAmount = async (amt) => {
       console.log('log amt:', fmt(amt));
@@ -52,7 +51,6 @@ const urls = [
     await ctc.p.Artist(interact);
   } else {
     const fan = ctc.a.Fan;
-    const perksFan = interact.perks;
     const pickedIdx = await ask(`Pick your perks ${perksArtist.map((p, idx) => `${idx + 1} - ${p[0]}, $${fmt(p[2])}`)}`, x => {
       if(isNaN(Number(x))){
         throw Error(`${x} is not a number!`)
