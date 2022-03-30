@@ -43,7 +43,6 @@ export const main = Reach.App(() => {
           relativeTime(deadline));
         
       setPerksParams(catalog);
-      // transfer([pickedPerk[0][2]]).to(A);
       totalPool = totalPool + pickedPerk[0][2];
 
       continue;
@@ -52,7 +51,6 @@ export const main = Reach.App(() => {
       continue;
     }
   }
-  A.interact.logAmount(balance());
 
   transfer([balance()]).to(A);
   commit();
@@ -64,6 +62,5 @@ export const main = Reach.App(() => {
 });
 
 // Questions:
-// 1. Why pay doesn't add value to the contract's balance?
 // 2. How can I get the elemnts to the front end in setPerksParams?
 // 3. Why doesn't the while loop expire after lastConsnsusTime is done?

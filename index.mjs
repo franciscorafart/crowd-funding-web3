@@ -6,10 +6,10 @@ const stdlib = loadStdlib(process.env);
 
 // TODO: This should be taken dynamically from the Artist participant
 const perksArtist = [
-  ['Digital download', 'download', 10],
-  ['Digital download + CD', 'downloadCd', 20],
-  ['Digital download, CD, and personal thank you note on CD', 'cdThanks', 50],
-  ['Digital download, CD, thank you note, and private performance', 'show', 100],
+  ['Digital download', 'download', stdlib.parseCurrency(10)],
+  ['Digital download + CD', 'downloadCd', stdlib.parseCurrency(20)],
+  ['Digital download, CD, and personal thank you note on CD', 'cdThanks', stdlib.parseCurrency(50)],
+  ['Digital download, CD, thank you note, and private performance', 'show', stdlib.parseCurrency(100)],
 ];
 
 const urls = [
@@ -53,7 +53,7 @@ const urls = [
   } else {
     const fan = ctc.a.Fan;
     const perksFan = interact.perks;
-    const pickedIdx = await ask(`Pick your perks ${perksArtist.map((p, idx) => `${idx + 1} - ${p[0]}, $${p[2]}`)}`, x => {
+    const pickedIdx = await ask(`Pick your perks ${perksArtist.map((p, idx) => `${idx + 1} - ${p[0]}, $${fmt(p[2])}`)}`, x => {
       if(isNaN(Number(x))){
         throw Error(`${x} is not a number!`)
       }
