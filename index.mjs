@@ -4,19 +4,11 @@ import  { ask, yesno, done } from '@reach-sh/stdlib/ask.mjs';
 
 const stdlib = loadStdlib(process.env);
 
-// TODO: This should be taken dynamically from the Artist participant
 const perksArtist = [
   ['Digital download', 'download', stdlib.parseCurrency(10)],
   ['Digital download + CD', 'downloadCd', stdlib.parseCurrency(20)],
   ['Digital download, CD, and personal thank you note on CD', 'cdThanks', stdlib.parseCurrency(50)],
   ['Digital download, CD, thank you note, and private performance', 'show', stdlib.parseCurrency(100)],
-];
-
-const urls = [
-  'https://crowdfunding.com/download-1',
-  'https://crowdfunding.com/download-2',
-  'https://crowdfunding.com/download-3',
-  'https://crowdfunding.com/download-1',
 ];
 
 (async () => {
@@ -59,8 +51,6 @@ const urls = [
       return x - 1;
     });
 
-    // TODO: This one is not right
-    // How to get perks from backend
     await fan.pickPerk(perksArtist[pickedIdx]);
   }
   const balance = await getBalance(acc);

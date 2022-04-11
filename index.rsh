@@ -2,7 +2,7 @@
 
 const Song = Tuple(Bytes(64), Bytes(12), UInt) // Title, id, Price
 
-const crowfundingDeadline = 5;
+const crowfundingDeadline = 8;
 
 export const main = Reach.App(() => {
   const A = Participant('Artist', {
@@ -24,12 +24,10 @@ export const main = Reach.App(() => {
     const goal = declassify(interact.goal);
   });
 
-  // The first one to publish deploys the contract
   A.publish(goal);
 
   const [ timeRemaining, keepGoing ] = makeDeadline(crowfundingDeadline);
-  
-  // TODO: Figure out crowfundingDeadline from dates
+
   var totalPool = 0;
   invariant(balance() == totalPool);
   while (keepGoing()) {
@@ -57,6 +55,3 @@ export const main = Reach.App(() => {
   exit();
 });
 
-// Questions:
-// 2. How can I get the elements to the front end in setPerksParams?
-// 3. Why doesn't the while loop expire after lastConsnsusTime is done?
