@@ -8,7 +8,7 @@ const perksArtist = [
   ['Digital download', 'download', stdlib.parseCurrency(10)],
   ['Digital download + CD', 'downloadCd', stdlib.parseCurrency(20)],
   ['Digital download, CD, and personal thank you note on CD', 'cdThanks', stdlib.parseCurrency(50)],
-  ['Digital download, CD, thank you note, and private performance', 'show', stdlib.parseCurrency(100)],
+  ['Digital download, CD, thank you note, and private performance', 'show', stdlib.parseCurrency(60)],
 ];
 
 (async () => {
