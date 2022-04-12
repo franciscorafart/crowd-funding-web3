@@ -1,4 +1,5 @@
 'reach 0.1';
+'use strict';
 
 const Song = Tuple(Bytes(64), Bytes(12), UInt) // Title, id, Price
 
@@ -28,23 +29,22 @@ export const main = Reach.App(() => {
 
   const [ timeRemaining, keepGoing ] = makeDeadline(crowfundingDeadline);
 
-  var totalPool = 0;
-  invariant(balance() == totalPool);
-  while (keepGoing()) {
-    commit();
-    try {
-      const [ pickedPerk, setPerksParams ] = call(F.pickPerk).pay(
-        (picked) => picked[2]).throwTimeout(timeRemaining());
-        
-      setPerksParams(null);
-      totalPool = totalPool + pickedPerk[0][2];
-
-      continue;
-    } catch (_) {
-      Anybody.publish(); 
-      continue;
-    }
-  }
+  const [totalPool] = parallelReduce([ 0 ])
+    .invariant(balance() == totalPool)
+    .while(keepGoing())
+    .api(
+      F.pickPerk,
+      _ => {
+        assume(1 == 1);
+      },
+      pickedPerk => pickedPerk[2],
+      ((pickedPerk, setPerksParams) => {
+        setPerksParams(null);
+        const pickedPrice = pickedPerk[2];
+        return [totalPool + pickedPrice];
+      })
+    )
+    .timeRemaining(timeRemaining());
 
   transfer([balance()]).to(A);
   commit();
